@@ -88,7 +88,7 @@ class BanditModel(nn.Module):
             prob[torch.arange(batchsize), max_index] += 1 - self.eps
             return prob
 
-        elif self.algorithm == "BE":  # needs fixing
+        elif self.algorithm == "BE":
             exp_term = torch.exp(self.ld * gap)
             sum_exp = torch.sum(exp_term, dim=1, keepdim=True)
             prob = exp_term / sum_exp
@@ -223,7 +223,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.algorithm == "EG":
-        eps_list = [0.3, 0.1, 0.03, 0.01, 0.03, 0.01, 0]
+        eps_list = [0.3, 0.1, 0.03, 0.01, 0.003, 0.001, 0]
         plt.figure()
         for eps in eps_list:
             args.eps = eps
