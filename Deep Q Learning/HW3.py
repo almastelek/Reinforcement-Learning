@@ -131,12 +131,14 @@ class MDPModel(nn.Module):
             #           and perform a gradient descent step
             #           Importantly, the gradient should not be taken on target_net
 
+            # Double DQN
             # Vectorized Q(s, a) from main network
             q_pred = self.get_state_action_values(sampled_state, sampled_action)
 
             # Vectorized Q'(s') from target network
             with torch.no_grad():
-                q_next = target_net.get_state_values(sampled_next_state)
+                target_max_actions = self.get_max_value_actions(sampled_next_state)
+                q_next = target_net.get_state_action_values(sampled_next_state, target_max_actions)
                 target = sampled_reward + GAMMA * (1 - sampled_terminated) * q_next
             
             # MSE loss
@@ -144,6 +146,21 @@ class MDPModel(nn.Module):
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()
+
+            # Previous TODO 2.2 Single DQN
+            # # Vectorized Q(s, a) from main network
+            # q_pred = self.get_state_action_values(sampled_state, sampled_action)
+
+            # # Vectorized Q'(s') from target network
+            # with torch.no_grad():
+            #     q_next = target_net.get_state_values(sampled_next_state)
+            #     target = sampled_reward + GAMMA * (1 - sampled_terminated) * q_next
+            
+            # # MSE loss
+            # loss = F.mse_loss(q_pred, target)
+            # loss.backward()
+            # self.optimizer.step()
+            # self.optimizer.zero_grad()
 
             # TODO 2.3: set the target_net parameter as (1-TAU) * target_net parameter + TAU * main_net (self) parameter
             for target_param, main_param in zip(target_net.parameters(), self.parameters()):
