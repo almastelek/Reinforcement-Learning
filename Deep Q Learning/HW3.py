@@ -112,16 +112,42 @@ class MDPModel(nn.Module):
 
     def update_batch(self, batch_state, batch_action, batch_reward, batch_next_state, batch_terminated, buffer, target_net):
         # TODO 1:  insert (s,a,r,s',t) in the input batch to the buffer
+        for i in range(len(batch_state)):
+            buffer.push(batch_state[i], batch_action[i], batch_reward[i], batch_next_state[i], batch_terminated[i])
         
         for m in range(self.M):
-            pass 
             # TODO 2.1: sample a new batch of tuples (s,a,r,s',t) of size MINIBATCH_SIZE from the buffer
+            samples = buffer.sample(MINIBATCH_SIZE)
+            batch = Transition(*zip(*samples))
+            sampled_state = torch.stack(batch.state)
+            sampled_action = torch.stack(batch.action)
+            sampled_reward = torch.stack(batch.reward)
+            sampled_next_state = torch.stack(batch.next_state)
+            sampled_terminated = torch.stack(batch.terminated)
+
             # TODO 2.2: calculate the regression loss 
             #           (self.get_state_action_values(s, a) - r - GAMMA * (1-t) * target_net.get_state_values(s'))**2
             #           for this new batch  
             #           and perform a gradient descent step
             #           Importantly, the gradient should not be taken on target_net
+
+            # Vectorized Q(s, a) from main network
+            q_pred = self.get_state_action_values(sampled_state, sampled_action)
+
+            # Vectorized Q'(s') from target network
+            with torch.no_grad():
+                q_next = target_net.get_state_values(sampled_next_state)
+                target = sampled_reward + GAMMA * (1 - sampled_terminated) * q_next
+            
+            # MSE loss
+            loss = F.mse_loss(q_pred, target)
+            loss.backward()
+            self.optimizer.step()
+            self.optimizer.zero_grad()
+
             # TODO 2.3: set the target_net parameter as (1-TAU) * target_net parameter + TAU * main_net (self) parameter
+            for target_param, main_param in zip(target_net.parameters(), self.parameters()):
+                target_param.data.copy_((1 - TAU) * target_param.data + TAU * main_param.data)
             
 
     def act(self, x, iteration):

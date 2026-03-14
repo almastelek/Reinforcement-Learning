@@ -18,7 +18,7 @@ import numpy as np
 import time
 import pygame
 
-step_duration = 0.5
+step_duration = 0.1
 
 
 def draw_overlay(screen, lines, font, color=(255, 255, 255)):
