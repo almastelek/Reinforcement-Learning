@@ -131,14 +131,18 @@ class MDPModel(nn.Module):
             #           and perform a gradient descent step
             #           Importantly, the gradient should not be taken on target_net
 
-            # Double DQN
+            # Double DQN or DQN
             # Vectorized Q(s, a) from main network
             q_pred = self.get_state_action_values(sampled_state, sampled_action)
 
             # Vectorized Q'(s') from target network
             with torch.no_grad():
-                target_max_actions = self.get_max_value_actions(sampled_next_state)
-                q_next = target_net.get_state_action_values(sampled_next_state, target_max_actions)
+                if self.algorithm == "DQN": 
+                    q_next = target_net.get_state_values(sampled_next_state)
+                elif self.algorithm == "DDQN":
+                    policy_max_actions = self.get_max_value_actions(sampled_next_state)
+                    q_next = target_net.get_state_action_values(sampled_next_state, policy_max_actions)
+                
                 target = sampled_reward + GAMMA * (1 - sampled_terminated) * q_next
             
             # MSE loss
