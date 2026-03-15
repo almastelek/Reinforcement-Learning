@@ -1,4 +1,3 @@
-## This code is for lunar lander
 import gymnasium as gym
 import math
 import random
@@ -147,9 +146,9 @@ class MDPModel(nn.Module):
             
             # MSE loss
             loss = F.mse_loss(q_pred, target)
+            self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            self.optimizer.zero_grad()
 
             # Previous TODO 2.2 Single DQN
             # # Vectorized Q(s, a) from main network
