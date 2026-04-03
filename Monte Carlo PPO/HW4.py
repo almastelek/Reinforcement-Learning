@@ -156,17 +156,60 @@ class MDPModel(nn.Module):
                     target_param.data.copy_(TAU * policy_param.data + (1.0 - TAU) * target_param.data)
 
         elif self.algorithm == "PPO":
-
             ## TODO 1: Calculate \hat{G}, \hat{A}, \hat{V} in the pseudocode for the N samples in the batch
-            ##         Note that \hat{\pi} in the pseudocode is simply batch_action_prob 
-            
+            ##         Note that \hat{\pi} in the pseudocode is simply batch_action_prob
+            with torch.no_grad():
+                next_state_values = self.forward_baseline(batch_next_state).squeeze(1)
+                G_hat = torch.zeros_like(batch_reward, dtype=torch.float32)
+
+                G_hat[-1] = batch_reward[-1] + GAMMA * next_state_values[-1] * (1 - batch_terminated[-1])
+
+                for i in reversed(range(len(batch_reward) - 1)):
+                    G_hat[i] = batch_reward[i] + GAMMA * G_hat[i+1] * (1 - batch_terminated[i])
+                
+                state_values = self.forward_baseline(batch_state).squeeze(1)
+                A_hat = G_hat - state_values
+
+                V_hat = batch_reward + GAMMA * next_state_values * (1 - batch_terminated)
+
+                G_hat = G_hat.detach()
+                A_hat = A_hat.detach()
+                V_hat = V_hat.detach()
+                old_action_prob = batch_action_prob.detach()
 
             for _ in range(self.M):
-                pass
                 ## TODO 2: Sample a minibatch of size MINIBATCH_SIZE from the batch of size N
+                idx = torch.randint(0, batch_state.shape[0], (MINIBATCH_SIZE,))
+                mb_state = batch_state[idx]
+                mb_action = batch_action[idx]
+                mb_adv = A_hat[idx]
+                mb_vhat = V_hat[idx]
+                mb_old_prob = old_action_prob[idx]
+
                 ## TODO 3: Calculate the policy (\pi_\theta) update objective over the minibatch
+                pi = self(mb_state)
+                row_idx = torch.arange(MINIBATCH_SIZE)
+                new_prob = pi[row_idx, mb_action]
+
+                ratio = new_prob / mb_old_prob
+
+                clipped_ratio = torch.clamp(ratio, 1 - EPS, 1 + EPS)
+
+                obj1 = ratio * mb_adv
+                obj2 = clipped_ratio * mb_adv
+                policy_objective = torch.min(obj1, obj2).mean()
+                policy_loss = -policy_objective
+
                 ## TODO 4: Calculate the value (V_\phi) update objective over the minibatch
+                pred_value = self.forward_baseline(mb_state).squeeze(1)
+                value_loss = F.mse_loss(pred_value, mb_vhat)
+
                 ## TODO 5: Update policy and value
+                loss = policy_loss + value_loss
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
+                
 
                
 
