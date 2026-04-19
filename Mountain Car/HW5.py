@@ -195,6 +195,8 @@ class MDPModel(nn.Module):
             ########################################################
             #  TODO-3.1:  push batch_state, batch_action to memory  
             ########################################################
+            for state, action in zip(batch_state, batch_action):
+                memory.push(state, action, torch.tensor(0.0), torch.tensor(0.0), torch.tensor(0))
             
             for _ in range(self.M):
                 pass
@@ -202,6 +204,15 @@ class MDPModel(nn.Module):
                 #  TODO-3.2:  sample a batch of states, actions from the memory
                 #  TODO-3.3:  train the policy network for one step
                 ################################################################
+                states, actions, _, _, _ = zip(*memory.sample(MINIBATCH_SIZE))
+                bc_states = torch.stack(states)
+                bc_actions = torch.stack(actions)
+
+                loss = F.cross_entropy(self(bc_states), bc_actions)
+
+                self.optimizer.zero_grad()
+                loss.backward()
+                self.optimizer.step()
                
 
         elif self.algorithm == "DQN":
