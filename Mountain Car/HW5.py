@@ -484,7 +484,7 @@ def train(args, n_actions, state_dim):
     if args.exploration == "tabular":
         exploration_bonus = TabularExplorationBonus(state_dim=state_dim, num_bins=20, bonus_scale=0.5, state_bounds=state_bounds)
     elif args.exploration == "rnd":
-        exploration_bonus = RandomNetworkDistillation(state_dim=state_dim, hidden_dim=64, bonus_scale=500, lr=1e-3, state_bounds=state_bounds)
+        exploration_bonus = RandomNetworkDistillation(state_dim=state_dim, hidden_dim=64, bonus_scale=10, lr=1e-3, state_bounds=state_bounds)
 
     
     batch_state = []

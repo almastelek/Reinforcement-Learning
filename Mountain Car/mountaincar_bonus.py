@@ -96,9 +96,15 @@ class TabularExplorationBonus:
         #  2. If update_counts == True, add 1 to self.visit_counts[discrete_state].
         #  3. Return the bonus.
         ########################################
-        bonus = self.bonus_scale / np.sqrt(self.visit_counts.get(discrete_state, 1))
+        discrete_state = self._discretize_state(state)
+
+        if discrete_state not in self.visit_counts:
+            self.visit_counts[discrete_state] = 1
+
+        bonus = self.bonus_scale / np.sqrt(self.visit_counts[discrete_state])
+
         if update_counts:
-            self.visit_counts[discrete_state] = self.visit_counts.get(discrete_state, 0) + 1
+            self.visit_counts[discrete_state] += 1
 
         return bonus
     
@@ -168,13 +174,13 @@ class RandomNetworkDistillation:
         ###############################################
         with torch.no_grad():
             target_output = self.target_net(state_norm)
+
         predictor_output = self.predictor_net(state_norm)
-        
         distance_squared = ((predictor_output - target_output) ** 2).sum()
         bonus = self.bonus_scale * distance_squared
-        
+
         if train:
-            loss = F.mse_loss(predictor_output, target_output)
+            loss = ((predictor_output - target_output) ** 2).sum()
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
